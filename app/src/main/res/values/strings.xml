@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">KnowYourMoney</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="input_hint">Put the number you spend </string>
+    <string name="add_new">New</string>
+    <string name="done">DONE</string>
+    <string name="price">Price</string>
+
+    <string name="breakfast">Breakfast</string>
+    <string name="lunch">Lunch</string>
+    <string name="dinner">Dinner</string>
+    <string name="supper">Supper</string>
+    <string name="drink">Soft Drink &amp; Water &amp; Wine</string>
+    <string name="supermarket">Supermarket</string>
+    <string name="ticket">Traffic Ticket</string>
+    <string name="fruit">Fruit</string>
+    <string name="snack">Snack</string>
+    <string name="commodity">Commodity</string>
+    <string name="clothes">Clothes</string>
+    <string name="entertainment">Entertainment</string>
+    <string name="shoes">Shoes</string>
+
+</resources>
