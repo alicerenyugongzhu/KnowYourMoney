@@ -9,7 +9,7 @@ import java.text.SimpleDateFormat;
  */
 public class AccountComment {
     private long id;
-    private Date date;
+    private String date;
     private String reason;
     private float price;
 
@@ -21,14 +21,14 @@ public class AccountComment {
         this.id = id;
     }
 
-    public Date  getDate() {
+    public String  getDate() {
         return date;
     }
 
     public void setDate(String date) throws ParseException {
         SimpleDateFormat format;
         format = new SimpleDateFormat("yyyy-MM-dd");
-        this.date = (Date) format.parse(date);
+        this.date = date;
     }
 
     public String getReason() {

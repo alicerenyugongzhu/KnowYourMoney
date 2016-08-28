@@ -13,6 +13,7 @@ import java.io.IOException;
  * Created by alice on 2016/6/18.
  */
 public class DBContext extends ContextWrapper {
+
     public DBContext(Context base) {
         super(base);
         Log.d("alice_debug", "I am in the DBContext");

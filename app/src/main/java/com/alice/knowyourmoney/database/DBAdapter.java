@@ -28,7 +28,7 @@ public class DBAdapter extends SQLiteOpenHelper{
     //SQL command
     public static final String DATABASE_ACCOUNT_CREATE = "CREATE TABLE " + TABLE_ACCOUNT +
             "(" + COLUMN_ID + " integer primary key autoincrement, " +
-            COLUMN_DATE + " date not null, " +
+            COLUMN_DATE + " text not null, " +
             COLUMN_REASON + " text not null, " +
             COLUMN_PRICE + " float not null" +
             ");";
