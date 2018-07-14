@@ -9,19 +9,10 @@
     <string name="add_new">New</string>
     <string name="done">DONE</string>
     <string name="price">Price</string>
+    <string name="reason">reason</string>
 
-    <string name="breakfast">Breakfast</string>
-    <string name="lunch">Lunch</string>
-    <string name="dinner">Dinner</string>
-    <string name="supper">Supper</string>
-    <string name="drink">Soft Drink &amp; Water &amp; Wine</string>
-    <string name="supermarket">Supermarket</string>
-    <string name="ticket">Traffic Ticket</string>
-    <string name="fruit">Fruit</string>
-    <string name="snack">Snack</string>
-    <string name="commodity">Commodity</string>
-    <string name="clothes">Clothes</string>
-    <string name="entertainment">Entertainment</string>
-    <string name="shoes">Shoes</string>
+    <string name="sum">Sum</string>
+    <string name="user">User Name</string>
+    <string name="user_mail">User Name @ user name .com</string>
 
 </resources>

@@ -2,18 +2,18 @@ package com.alice.knowyourmoney;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.content.Context;
+import android.app.DatePickerDialog;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.widget.TextViewCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.ViewHolder;
-import android.text.format.Time;
+import android.text.method.LinkMovementMethod;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TimeFormatException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -26,125 +26,137 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.GridView;
+import android.widget.LinearLayout;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.alice.knowyourmoney.RecyclerViewAdapter.MyAdapter;
+import com.alice.knowyourmoney.RecyclerViewAdapter.SpaceDecoration;
 import com.alice.knowyourmoney.database.AccountComment;
 import com.alice.knowyourmoney.database.DBSource;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AccountKeep extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, MyAdapter.MyItemClickListener {
 
-    Button myBT = null;
     RecyclerView recordList = null;
     FloatingActionButton fab = null;
     DBSource myDb = null;
     MyAdapter myAdapter = null;
     List<AccountComment> records = null;
+    ArrayList<AccountComment> weekRecords = null;
 
-    ArrayList<String> reasonList = null;
-    ArrayList<String> reasonMorning = null;
-    ArrayList<String> reasonNoon = null;
-    ArrayList<String> reasonEve = null;
+    //Parameter
+    String recordDate;
+    int year;
+    int month;
+    int day;
+    List<Map<String, Object>> week_list;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_account_keep);
 
-        //ReasonList Init
-        ReasonListInit();
-        
         //Handle Database
         try {
             DBInit();
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
+        //Init Budget
+        //Preference
+        //TODO need confirm what the toolbar can help me
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-
-        fab = (FloatingActionButton) findViewById(R.id.fab);
-
-        myBT = (Button)findViewById(R.id.record);
-        myBT.setOnClickListener(new View.OnClickListener() {
+        //Init New Record update
+        final LinearLayout newRecord = findViewById(R.id.record_add);
+        newRecord.setVisibility(View.GONE);
+        final EditText newReason = findViewById(R.id.new_reason);
+        newReason.setVisibility(View.GONE);
+        final EditText newPrice = findViewById(R.id.new_price);
+        newPrice.setVisibility(View.GONE);
+        final Button recordDone = findViewById(R.id.entry_done);
+        recordDone.setVisibility(View.GONE);
+        recordDone.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                EditText myET = (EditText)findViewById(R.id.price);
-                TextView myTV = (TextView)findViewById(R.id.price_hint);
-                String price = myET.getText().toString();
-                //MDHide(myET);
-                //MDHide(myTV);
-                //MDHide(myBT);
-                MDShow(fab);
-                MDShow(recordList);
-
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) {
-                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+            public void onClick(View view) {
+                if (!isNumberic(newPrice.getText().toString())) {
+                    Toast.makeText(getApplicationContext(), "Price need to be number. Please enter it again", Toast.LENGTH_LONG).show();
                 }
-
-                //Recycler View
-                if(!price.equals("")) {
-                    //Get System time
-                    DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-                    SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss ");
-                    //Date curDate = new Date(System.currentTimeMillis());//获取当前时间
-                    String time = formatter.format(System.currentTimeMillis());
-                    String date = df.format(System.currentTimeMillis());
-                    date = date + " " + time;
-                    Log.d("alice_debug", "the date that I final will insert is " + date);
-                    myDb.Open();
-                    try {
-                        AccountComment ac = myDb.CreateAccount(date, GetSpendReason(), Integer.parseInt(price));
-                        Log.d("alice_debug", "I am insert an account item into DB");
-                        Log.d("alice_debug", "id is " + ac.getId());
-                        Log.d("alice_debug", "date is " + ac.getDate());
-                        Log.d("alice_debug", "reason is " + ac.getReason());
-                        //myAdapter.notifyItemInserted((int) ac.getId() - 1);
-                        //records.clear();
-                        records.add(ac);
-                        Log.d("alice_debug", "records refresh " + records.size());
-                        //myAdapter.notifyItemChanged((int)ac.getId());
-                        myAdapter.DataReload(records);
-                        //myAdapter.DataReload(ac);
-                        recordList.setAdapter(myAdapter);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    myET.setText("");
+                MDHide(newReason);
+                MDHide(newPrice);
+                MDHide(recordDone);
+                MDHide(newRecord);
+                String date = recordDate;
+                String reason = newReason.getText().toString();
+                newReason.setText("");
+                int price = Integer.parseInt(newPrice.getText().toString());
+                newPrice.setText("");
+                try {
+                    myDb.CreateAccount(date, reason, price);
+                    Log.d("alice_debug", "Create one account record here.");
+                } catch (ParseException e) {
+                    e.printStackTrace();
                 }
+                //myAdapter.DataReloadAll();
+                //try {
+                //    records = myDb.getAllAccount();
+                //} catch (ParseException e) {
+                //    e.printStackTrace();
+                //}
+                AccountComment newRecord = new AccountComment();
+                try {
+                    newRecord.setDate(date);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                newRecord.setPrice(price);
+                newRecord.setReason(reason);
+
+                weekRecords.add(newRecord);
+                Log.d("alice_debug", "weekRecords is " + weekRecords);
+                myAdapter.setData(weekRecords);
+                myAdapter.DataReloadAll();
+                //recordList.setAdapter(myAdapter);
+
             }
+
+
         });
 
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        //MDHide(fab);  //TODO hide the fab. Need confirm whether I need it in the future
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                EditText myET = (EditText)findViewById(R.id.price);
-                TextView myTV = (TextView)findViewById(R.id.price_hint);
-
-                // previously invisible view
-                MDShow(myET);
-                MDShow(myTV);
-                MDShow(myBT);
-                //myET.setVisibility(View.VISIBLE);
-                //myTV.setVisibility(View.VISIBLE);
-                //myBT.setVisibility(View.VISIBLE);
-                //fab.setVisibility(View.INVISIBLE);
-                MDHide(fab);
-                MDHide(recordList);
+                MDShow(newRecord);
+                MDShow(newReason);
+                MDShow(newPrice);
+                MDShow(recordDone);
+                new DatePickerDialog(AccountKeep.this, datePickerListener, year, (month - 1), day).show();
             }
         });
 
@@ -156,9 +168,99 @@ public class AccountKeep extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        //Init Calendar
+        CalendarInit();
     }
 
-    private void MDShow(View view){
+    private DatePickerDialog.OnDateSetListener datePickerListener = new DatePickerDialog.OnDateSetListener() {
+        @Override
+        public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+            recordDate = String.valueOf(year) + String.valueOf(month + 1) + String.valueOf(dayOfMonth);
+        }
+    };
+
+    public static boolean isNumberic(String s) {
+        Pattern pattern = Pattern.compile("[0-9]*");
+        Matcher isNum = pattern.matcher(s);
+        if (!isNum.matches()) {
+            return false;
+        }
+        return true;
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void CalendarInit() {
+        //Get what's day today
+        LocalDate cc = LocalDate.now();
+        DayOfWeek dayOfWeek = cc.getDayOfWeek();
+        year = cc.getYear();
+        month = cc.getMonthValue();  //month start from 0??
+        day = cc.getDayOfMonth();
+
+        //Init View
+        TextView monthView = (TextView) findViewById(R.id.month_view);
+        monthView.setText(String.valueOf(month));
+        monthView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MDLinkMovement(view);
+            }
+        });
+
+        //Init Grid View
+        GridView gridView = (GridView) findViewById(R.id.week_day);
+
+        week_list = new ArrayList<Map<String, Object>>();
+        week_list = GetWeekAndDay(day, dayOfWeek);
+        String[] from = {"week", "day"};
+        int[] to = {R.id.days_of_week, R.id.day};
+        SimpleAdapter simpleAdapter = new SimpleAdapter(this, week_list, R.layout.grid_item, from, to);
+        gridView.setAdapter(simpleAdapter);
+        Log.d("alice_debug", "I am here after the gridView setting");
+
+        //Init RecyclerView
+        RecordShowInit();
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    List<Map<String, Object>> GetWeekAndDay(int day, DayOfWeek dayOfWeek) {
+        List<Map<String, Object>> week_list;
+        week_list = new ArrayList<Map<String, Object>>();
+        String[] dayOfWeekString = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+        int[] loopDay = new int[7];
+        loopDay[dayOfWeek.getValue() - 1] = day;
+        Log.d("alice_debug", "dayOfWeek returns " + dayOfWeek.getValue());
+        Log.d("alice_debug", "today is " + day);
+        int dayTemp;
+        int weekBefore = dayOfWeek.getValue() - 1;
+        int number = 1;
+        while (weekBefore-- > 0) {
+            LocalDate ld = LocalDate.now().minusDays(number++);
+            dayTemp = ld.getDayOfMonth();
+            loopDay[weekBefore] = dayTemp;
+        }
+
+        int weekAfter = dayOfWeek.getValue();
+        number = 1;
+        while (weekAfter < 7) {
+            LocalDate ld = LocalDate.now().plusDays(number);
+            dayTemp = ld.getDayOfMonth();
+            loopDay[weekAfter++] = dayTemp;
+        }
+
+        for (int loop = 0; loop < 7; loop++) {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("week", dayOfWeekString[loop]);
+            map.put("day", loopDay[loop]); //Need confirm how can I get the correct month Day
+            week_list.add(map);
+        }
+        return week_list;
+    }
+
+    private void MDShow(View view) {
         View myView = view;
 
         // get the center for the clipping circle
@@ -177,9 +279,9 @@ public class AccountKeep extends AppCompatActivity
         anim.start();
     }
 
-    private void MDHide(View view){
+    private void MDHide(View view) {
         // previously visible view
-        final View myView = view ;
+        final View myView = view;
 
 // get the center for the clipping circle
         int cx = (myView.getLeft() + myView.getRight()) / 2;
@@ -205,61 +307,69 @@ public class AccountKeep extends AppCompatActivity
         anim.start();
     }
 
-    private void ReasonListInit() {
-        reasonList = new ArrayList<String>();
-        reasonList.add(getString(R.string.breakfast));
-        reasonList.add(getString(R.string.lunch));
-        reasonList.add(getString(R.string.dinner));
-        reasonList.add(getString(R.string.supper));
-        reasonList.add(getString(R.string.commodity));
-        reasonList.add(getString(R.string.clothes));
-        reasonList.add(getString(R.string.entertainment));
-        reasonList.add(getString(R.string.shoes));
+    private void MDLinkMovement(View view) {
+        DisplayMetrics dm = getResources().getDisplayMetrics();
 
-        reasonMorning = new ArrayList<String>();
-        reasonMorning.add(getString(R.string.breakfast));
 
-        reasonNoon = new ArrayList<String>();
-        reasonNoon.add(getString(R.string.lunch));
-
-        reasonEve = new ArrayList<String>();
-        reasonEve.add(getString(R.string.supper));
-
-    }
-
-    private String GetSpendReason() {
-        SimpleDateFormat formatter = new SimpleDateFormat ("HH:mm:ss ");
-        Date curDate = new Date(System.currentTimeMillis());//获取当前时间
-        String str = formatter.format(curDate);
-        String reason = null;
-        //guess reason according to time
-        //Proper reason
-        Log.d("alice_debug", "the time is " + str);
-        //if t is morning from 5:00 - 11:00 breakfast/drink
-        String [] hour = str.split(":");
-        if(Integer.parseInt(hour[0]) < 11) //Morning
-            reason= reasonMorning.get(0);
-        //if t is noon from 11:00 - 14:00 lunch/drink/supermarket/Commodity
-        else if(Integer.parseInt(hour[0]) < 14) //Noon
-            reason = reasonNoon.get(0);
-        else
-            reason = reasonEve.get(0);
-        return reason;
+        Animation ani = new TranslateAnimation(0.0f, dm.widthPixels / 2, 0.0f, 0.0f);
+        ani.setDuration(1000);
+        ani.setRepeatCount(1);
+        ani.setRepeatMode(1);
+        TextView myView = (TextView) view;
+        myView.setMovementMethod(LinkMovementMethod.getInstance());
+        view.startAnimation(ani);
     }
 
     private void DBInit() throws ParseException {
         myDb = new DBSource(this);
         myDb.Open();
-
         records = new ArrayList<AccountComment>();
         records = myDb.getAllAccount();
-        recordList = (RecyclerView)findViewById(R.id.record_list);
-        recordList.setLayoutManager(new LinearLayoutManager(this));
-       // recordList.setAdapter(new MyAdapter(myDb.getAllAccount()));
+
+    }
+
+    private void RecordShowInit() {
+
+        recordList = (RecyclerView) findViewById(R.id.detail_view);
+
+        recordList.setHasFixedSize(true);
         Log.d("alice_debug", "number of Account list " + records.size());
-        myAdapter = new MyAdapter(records);
+        weekRecords = new ArrayList<AccountComment>();
+        GetThisWeekList(records, weekRecords);
+        myAdapter = new MyAdapter(weekRecords);
+        myAdapter.SetItemClickListener(this);
         recordList.setAdapter(myAdapter);
+        recordList.setLayoutManager(new LinearLayoutManager(this));
         recordList.setItemAnimator(new DefaultItemAnimator());
+        recordList.addItemDecoration(new SpaceDecoration(30));
+
+    }
+
+    @Override
+    public void onItemClick(View view, int position) {
+        Toast.makeText(this, "item is clicked", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public boolean onItemLongClick(View view, int position) {
+        Toast.makeText(this, "long item is clicked", Toast.LENGTH_LONG).show();
+        return false;
+    }
+
+    private void GetThisWeekList(List<AccountComment> source, ArrayList<AccountComment> dest) {
+        int size = week_list.size();
+        for (int i = 0; i < size; i++) {
+            Map<String, Object> map = week_list.get(i);
+            Integer day = (Integer) map.get("day");
+            String dateCmp = String.valueOf(year) + String.valueOf(month) + day.toString();
+            for (int j = 0; j < source.size(); j++) {
+                AccountComment ac = source.get(j);
+                if (dateCmp.equals(ac.getDate())) {
+                    dest.add(ac);
+                }
+            }
+        }
+
     }
 
     @Override
@@ -278,6 +388,7 @@ public class AccountKeep extends AppCompatActivity
         getMenuInflater().inflate(R.menu.account_keep, menu);
         return true;
     }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -300,8 +411,11 @@ public class AccountKeep extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
+        if (id == R.id.record_sum) {
+            // Jump to the record sum page
+            Intent intent = new Intent(AccountKeep.this, AccountSum.class);
+            startActivity(intent);
+
         } else if (id == R.id.nav_gallery) {
 
         } else if (id == R.id.nav_slideshow) {
@@ -319,58 +433,4 @@ public class AccountKeep extends AppCompatActivity
         return true;
     }
 
-    class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
-        //TODO: need add 3 item : Date Reason Price
-        List<AccountComment> ac = new ArrayList<AccountComment>();
-        public MyAdapter(List<AccountComment> ac){
-            this.ac = ac;
-        }
-
-        public void DataReload(List<AccountComment> ac){
-            this.ac.clear();
-            this.ac.addAll(ac);
-            notifyDataSetChanged();
-        }
-
-        public void DataReload(AccountComment acItem){
-            this.ac.add(acItem);
-            notifyItemInserted(this.ac.size());
-            notifyItemInserted(this.ac.size());
-        }
-
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_account, parent, false);
-            ViewHolder viewHolder = new ViewHolder(view);
-            return viewHolder;
-        }
-
-        @Override
-        public void onBindViewHolder(ViewHolder holder, int position) {
-            //DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-            Log.d("alice_debug", "position is " + position);
-            Log.d("alice_debug", "Date is this position is " + ac.get(position).getDate());
-            holder.rdDate.setText(ac.get(position).getDate());
-            holder.rdReason.setText(ac.get(position).getReason());
-            holder.rdPrice.setText(Float.toString(ac.get(position).getPrice()));
-        }
-
-        @Override
-        public int getItemCount() {
-            return ac.size();
-        }
-
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            TextView rdDate;
-            TextView rdReason;
-            TextView rdPrice;
-            public ViewHolder(View view){
-                super(view);
-                rdDate = (TextView)view.findViewById(R.id.recordDate);
-                rdReason = (TextView)view.findViewById(R.id.recordReason);
-                rdPrice = (TextView)view.findViewById(R.id.recordPrice);
-
-            }
-        }
-    }
 }

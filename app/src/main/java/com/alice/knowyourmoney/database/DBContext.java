@@ -29,8 +29,8 @@ public class DBContext extends ContextWrapper {
             //dbFile = new File(getBaseContext().getFilesDir(), name);
 
         } else {
-            //String dbDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
-            String dbDir = "/data/data/com.alice.knowyourmoney";//TODO: need enhance
+            String dbDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "knowyourmoney";
+            //String dbDir = "/data/data/com.alice.knowyourmoney";//TODO: need enhance
             dbDir += "/database";
             String dbPath = dbDir + "/" + name;
             Log.d("alice_debug", "dir is " + dbDir);
@@ -64,7 +64,7 @@ public class DBContext extends ContextWrapper {
             else
                 return null;
     }
-/*
+
     @Override
     public SQLiteDatabase openOrCreateDatabase(String name, int mode,
                                                SQLiteDatabase.CursorFactory factory) {
@@ -72,5 +72,5 @@ public class DBContext extends ContextWrapper {
         SQLiteDatabase result = SQLiteDatabase.openOrCreateDatabase(getDatabasePath(name), null);
         return result;
     }
-*/
+
 }

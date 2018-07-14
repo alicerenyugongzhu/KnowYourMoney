@@ -26,8 +26,8 @@ public class AccountComment {
     }
 
     public void setDate(String date) throws ParseException {
-        SimpleDateFormat format;
-        format = new SimpleDateFormat("yyyy-MM-dd");
+        //SimpleDateFormat format;
+        //format = new SimpleDateFormat("yyyy-MM-dd");
         this.date = date;
     }
 
