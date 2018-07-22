@@ -14,7 +14,8 @@ import android.support.v7.widget.RecyclerView;
 import android.text.method.LinkMovementMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -25,10 +26,8 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewAnimationUtils;
-import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -55,14 +54,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AccountKeep extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, MyAdapter.MyItemClickListener {
+        implements NavigationView.OnNavigationItemSelectedListener, MyAdapter.MyItemClickListener, View.OnTouchListener{
 
     RecyclerView recordList = null;
     FloatingActionButton fab = null;
+    LinearLayout newRecordLayout = null;
+    EditText newReason  = null;
+    EditText newPrice = null;
+    Button recordDone = null;
+    TextView newDate = null;
+
+
     DBSource myDb = null;
     MyAdapter myAdapter = null;
     List<AccountComment> records = null;
     ArrayList<AccountComment> weekRecords = null;
+    GestureDetector mGestureDetector = null;
 
     //Parameter
     String recordDate;
@@ -70,6 +77,10 @@ public class AccountKeep extends AppCompatActivity
     int month;
     int day;
     List<Map<String, Object>> week_list;
+    int insetPosition;
+
+    private static final int FLING_MIN_DISTANCE = 50;   //Smallest instance
+    private static final int FLING_MIN_VELOCITY = 0;  //Smallest speed
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -87,17 +98,19 @@ public class AccountKeep extends AppCompatActivity
         //Init Budget
         //Preference
         //TODO need confirm what the toolbar can help me
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         //Init New Record update
-        final LinearLayout newRecord = findViewById(R.id.record_add);
-        newRecord.setVisibility(View.GONE);
-        final EditText newReason = findViewById(R.id.new_reason);
+        newRecordLayout = findViewById(R.id.record_add);
+        newRecordLayout.setVisibility(View.GONE);
+        newDate = findViewById(R.id.new_date);
+        newDate.setVisibility(View.GONE);
+        newReason = findViewById(R.id.new_reason);
         newReason.setVisibility(View.GONE);
-        final EditText newPrice = findViewById(R.id.new_price);
+        newPrice = findViewById(R.id.new_price);
         newPrice.setVisibility(View.GONE);
-        final Button recordDone = findViewById(R.id.entry_done);
+        recordDone = findViewById(R.id.entry_done);
         recordDone.setVisibility(View.GONE);
         recordDone.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -105,20 +118,46 @@ public class AccountKeep extends AppCompatActivity
                 if (!isNumberic(newPrice.getText().toString())) {
                     Toast.makeText(getApplicationContext(), "Price need to be number. Please enter it again", Toast.LENGTH_LONG).show();
                 }
+                MDHide(newDate);
                 MDHide(newReason);
                 MDHide(newPrice);
                 MDHide(recordDone);
-                MDHide(newRecord);
+                MDHide(newRecordLayout);
                 String date = recordDate;
+                newDate.setText("");
                 String reason = newReason.getText().toString();
                 newReason.setText("");
-                int price = Integer.parseInt(newPrice.getText().toString());
+                float price = Float.parseFloat(newPrice.getText().toString());
                 newPrice.setText("");
-                try {
-                    myDb.CreateAccount(date, reason, price);
-                    Log.d("alice_debug", "Create one account record here.");
-                } catch (ParseException e) {
-                    e.printStackTrace();
+                if(recordDone.getText().equals("Add Done")) {
+                    try {
+                        AccountComment newRecord = myDb.CreateAccount(date, reason, price);
+                        Log.d("alice_debug", "Create one account record here.");
+                        weekRecords.add(newRecord);
+                        Log.d("alice_debug", "weekRecords is " + weekRecords);
+                        myAdapter.setData(weekRecords);
+                        myAdapter.notifyDataSetChanged();
+                        //recordList.setAdapter(myAdapter);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        weekRecords.get(insetPosition).setDate(date);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    weekRecords.get(insetPosition).setReason(reason);
+                    weekRecords.get(insetPosition).setPrice(price);
+                    try {
+                        myDb.UpdateAccount(weekRecords.get(insetPosition));
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    myAdapter.notifyItemChanged(insetPosition);
+                    myAdapter.setData(weekRecords);
+                    myAdapter.notifyItemRangeChanged(insetPosition, weekRecords.size());
+
                 }
                 //myAdapter.DataReloadAll();
                 //try {
@@ -126,57 +165,75 @@ public class AccountKeep extends AppCompatActivity
                 //} catch (ParseException e) {
                 //    e.printStackTrace();
                 //}
-                AccountComment newRecord = new AccountComment();
-                try {
-                    newRecord.setDate(date);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                newRecord.setPrice(price);
-                newRecord.setReason(reason);
-
-                weekRecords.add(newRecord);
-                Log.d("alice_debug", "weekRecords is " + weekRecords);
-                myAdapter.setData(weekRecords);
-                myAdapter.DataReloadAll();
-                //recordList.setAdapter(myAdapter);
-
+                //AccountComment newRecord = new AccountComment();
             }
 
 
         });
 
-        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab = findViewById(R.id.fab);
         //MDHide(fab);  //TODO hide the fab. Need confirm whether I need it in the future
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MDShow(newRecord);
+                MDShow(newRecordLayout);
                 MDShow(newReason);
                 MDShow(newPrice);
                 MDShow(recordDone);
+                recordDone.setText("Add Done");
                 new DatePickerDialog(AccountKeep.this, datePickerListener, year, (month - 1), day).show();
             }
         });
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
         //Init Calendar
         CalendarInit();
-    }
+
+        mGestureDetector = new GestureDetector(this, onGestureListener);
+        LinearLayout ll = findViewById(R.id.main1_layout);
+        ll.setOnTouchListener(this);
+        ll.setLongClickable(true);
+
+        }
+
+    private GestureDetector.OnGestureListener onGestureListener =
+
+            new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    Log.d("alice_debug", "Enter onFling event");
+                    float x = e1.getX() - e2.getX();
+                    float x2 = e2.getX() - e1.getX();
+                    if (x > FLING_MIN_DISTANCE && Math.abs(velocityX) > FLING_MIN_VELOCITY) {
+                        //Left
+                        Toast.makeText(AccountKeep.this, "Move left", Toast.LENGTH_SHORT).show();
+                        return true;
+
+                    } else if (x2 > FLING_MIN_DISTANCE && Math.abs(velocityX) > FLING_MIN_VELOCITY) {
+                        //Right
+                        Toast.makeText(AccountKeep.this, "Move left", Toast.LENGTH_SHORT).show();
+                    }
+                    return false;
+                }
+            };
+
+
 
     private DatePickerDialog.OnDateSetListener datePickerListener = new DatePickerDialog.OnDateSetListener() {
         @Override
         public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
             recordDate = String.valueOf(year) + String.valueOf(month + 1) + String.valueOf(dayOfMonth);
+            MDShow(newDate);
+            newDate.setText(recordDate.toString());
         }
     };
 
@@ -200,17 +257,19 @@ public class AccountKeep extends AppCompatActivity
         day = cc.getDayOfMonth();
 
         //Init View
-        TextView monthView = (TextView) findViewById(R.id.month_view);
+        final TextView monthView = findViewById(R.id.month_view);
         monthView.setText(String.valueOf(month));
         monthView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MDLinkMovement(view);
+                //MDLinkMovement(view);
+                //TODO Show the month picker
+                monthView.setText(String.valueOf(month));
             }
         });
 
         //Init Grid View
-        GridView gridView = (GridView) findViewById(R.id.week_day);
+        GridView gridView = findViewById(R.id.week_day);
 
         week_list = new ArrayList<Map<String, Object>>();
         week_list = GetWeekAndDay(day, dayOfWeek);
@@ -224,7 +283,7 @@ public class AccountKeep extends AppCompatActivity
         RecordShowInit();
 
     }
-
+    //TODO this is a bug when open on Tuesday. Day of Week will show like 1 ,2, 3, 3, 3. Need fix
     @RequiresApi(api = Build.VERSION_CODES.O)
     List<Map<String, Object>> GetWeekAndDay(int day, DayOfWeek dayOfWeek) {
         List<Map<String, Object>> week_list;
@@ -246,7 +305,7 @@ public class AccountKeep extends AppCompatActivity
         int weekAfter = dayOfWeek.getValue();
         number = 1;
         while (weekAfter < 7) {
-            LocalDate ld = LocalDate.now().plusDays(number);
+            LocalDate ld = LocalDate.now().plusDays(number++);
             dayTemp = ld.getDayOfMonth();
             loopDay[weekAfter++] = dayTemp;
         }
@@ -330,7 +389,7 @@ public class AccountKeep extends AppCompatActivity
 
     private void RecordShowInit() {
 
-        recordList = (RecyclerView) findViewById(R.id.detail_view);
+        recordList = findViewById(R.id.detail_view);
 
         recordList.setHasFixedSize(true);
         Log.d("alice_debug", "number of Account list " + records.size());
@@ -347,12 +406,31 @@ public class AccountKeep extends AppCompatActivity
 
     @Override
     public void onItemClick(View view, int position) {
-        Toast.makeText(this, "item is clicked", Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "item is clicked", Toast.LENGTH_LONG).show();
+        //TODO this need update DBSource to add the update function
+        MDShow(newRecordLayout);
+        MDShow(newDate);
+        MDShow(newReason);
+        MDShow(newPrice);
+        MDShow(recordDone);
+        recordDate = weekRecords.get(position).getDate();
+        newDate.setText(recordDate);
+        newReason.setText(weekRecords.get(position).getReason());
+        String sPrice = String.valueOf(weekRecords.get(position).getPrice());
+        newPrice.setText(sPrice);
+        recordDone.setText("Edit Done");
+        //Buffer the position
+        insetPosition = position;
     }
 
     @Override
     public boolean onItemLongClick(View view, int position) {
-        Toast.makeText(this, "long item is clicked", Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "long item is clicked", Toast.LENGTH_LONG).show();
+        AccountComment item = weekRecords.get(position);
+        myDb.DeleteAccount(item);
+        weekRecords.remove(position);
+        myAdapter.notifyItemRemoved(position);
+        myAdapter.notifyItemRangeChanged(position, weekRecords.size());
         return false;
     }
 
@@ -433,4 +511,10 @@ public class AccountKeep extends AppCompatActivity
         return true;
     }
 
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        Log.d("alice_debug", "I am in onTouch Event");
+        mGestureDetector.onTouchEvent(event);
+        return false;
+    }
 }
