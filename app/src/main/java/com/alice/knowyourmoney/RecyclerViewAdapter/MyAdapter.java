@@ -15,7 +15,7 @@ import java.util.List;
 
 public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
-    List<AccountComment> ac = new ArrayList<AccountComment>();
+    List<AccountComment> ac;
     private MyItemClickListener mItemClickListener;
 
 
@@ -25,16 +25,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder> {
 
     public void setData(List<AccountComment> ac){
         this.ac = ac;
-    }
-
-    public void DataReloadAll(){
-        notifyDataSetChanged();
-    }
-
-    public void DataReload(){
-        //this.ac.add(acItem);
-        notifyItemInserted(this.ac.size());
-        //notifyItemInserted(this.ac.size());
     }
 
     public interface MyItemClickListener {

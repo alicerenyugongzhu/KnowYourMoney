@@ -5,7 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context="com.alice.knowyourmoney.AccountKeep">
+    tools:context="com.alice.knowyourmoney.AccountKeep"
+    android:id="@+id/container"
+    >
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -34,35 +36,73 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_gravity="center_vertical"
         android:id="@+id/record_add"
         android:background="#000"
         android:visibility="gone">
 
-        <EditText
-            android:layout_width="0dp"
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
+            android:visibility="gone"
+            android:textColor="#fff"
+            android:id="@+id/new_date"/>
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:hint="@string/reason"
             android:textColor="#fff"
+            android:textColorHint="#ff0"
             android:id="@+id/new_reason"
             android:visibility="gone"/>
         <EditText
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:hint="@string/price"
             android:textColor="#fff"
+            android:textColorHint="#ff0"
             android:id="@+id/new_price"
             android:visibility="gone"/>
         <Button
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text = "@string/done"
             android:textColor="#fff"
             android:id="@+id/entry_done"
+            android:visibility="gone"/>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center_vertical"
+        android:id="@+id/pref_setting"
+        android:background="#000"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:textColor="#fff"
+            android:id="@+id/pref_info"
+            android:layout_weight="1"/>
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#fff"
+            android:textColorHint="#ff0"
+            android:id="@+id/pref_value"
+            android:visibility="gone"
+            android:layout_weight="1"/>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text = "@string/done"
+            android:textColor="#fff"
+            android:layout_weight="1"
+            android:id="@+id/pref_done"
             android:visibility="gone"/>
     </LinearLayout>
 

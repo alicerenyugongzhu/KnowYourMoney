@@ -25,13 +25,13 @@ import java.util.Map;
 public class AccountSum extends Activity {
 
     //Global Parameters
-    Map pie = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         SumCalculation();
-        PanView panView = new PanView(this);
-        setContentView(panView);
+        StatisticalView msView = new StatisticalView(this);
+        setContentView(msView);
 
     }
 
@@ -39,19 +39,15 @@ public class AccountSum extends Activity {
         DBSource myDb = new DBSource(this);
         myDb.Open();
         List<AccountComment> records = new ArrayList<AccountComment>();
-        pie = new HashMap();
         try {
             records = myDb.getAllAccount();
-            for (AccountComment i : records) {
-                pie.put(i.getReason(), (int)pie.get(i.getReason()) + i.getPrice());
-            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
     }
 
-    public class PanView extends View{
-        public PanView(Context context) {
+    public class StatisticalView extends View{
+        public StatisticalView(Context context) {
             super(context);
         }
 
@@ -61,12 +57,11 @@ public class AccountSum extends Activity {
             WindowManager wm = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
             int width = wm.getDefaultDisplay().getWidth();
             int height = wm.getDefaultDisplay().getHeight();
-            float midWidth = width/2;
-            float midHeight = height/2;
             Paint paint = new Paint();
             paint.setAntiAlias(true);
             paint.setColor(Color.BLUE);
-            canvas.drawCircle(midWidth, midHeight, 30,paint);
+            String text = "TO BE DEVELOPED";
+            canvas.drawText(text, width/2, height/2, paint);
         }
     }
 }

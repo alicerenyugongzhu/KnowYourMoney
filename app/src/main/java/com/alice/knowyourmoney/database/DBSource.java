@@ -12,6 +12,7 @@ import android.util.Log;
 import java.sql.Date;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 
 /**
@@ -24,6 +25,8 @@ public class DBSource {
     private DBAdapter dbAdp;
     private String[] allAccountColumns = {DBAdapter.COLUMN_ID, DBAdapter.COLUMN_DATE,
             DBAdapter.COLUMN_REASON, DBAdapter.COLUMN_PRICE};
+    private String[] allBudget = {DBAdapter.COLUMN_BUDGET};
+    private String[] allLeft = {DBAdapter.COLUMN_LEFT};
 
     public DBSource(Context context){
         Log.d("alice_debug", "I am in the DBSource stucturer");
@@ -32,7 +35,7 @@ public class DBSource {
     }
 
     public void Open() throws SQLException {
-        //database = SQLiteDatabase.openOrCreateDatabase()
+        //database = SQLiteDatabase.openOrCreateDatabase();
         database = dbAdp.getWritableDatabase();
         Log.d("alice_debug", "I am out of DB open");
     }
@@ -51,7 +54,7 @@ public class DBSource {
         Cursor cursor = database.query(DBAdapter.TABLE_ACCOUNT, allAccountColumns,
                 DBAdapter.COLUMN_ID + "=" + insertId, null, null, null, null);
         cursor.moveToFirst();
-        Log.d("alice", "Done for Create Account");
+        Log.d("alice_debug", "Done for Create Account");
         return cursorToAccountComment(cursor);
     }
 
@@ -69,9 +72,11 @@ public class DBSource {
         return comments;
     }
 
+
     public void DeleteAccount(AccountComment comment){
         long id = comment.getId();
-        System.out.println("Comment delete with ID : " + id);
+        Log.d("alice_debug","Comment delete with ID : " + id);
+
         database.delete(DBAdapter.TABLE_ACCOUNT, DBAdapter.COLUMN_ID + "=" + id, null);
     }
 
@@ -80,7 +85,30 @@ public class DBSource {
         comment.setId(cursor.getLong(0));
         comment.setDate(cursor.getString(1));
         comment.setReason(cursor.getString(2));
-        comment.setPrice(cursor.getInt(3));
+        comment.setPrice(cursor.getFloat(3));
         return comment;
     }
+
+    public void UpdateAccount(AccountComment comment) throws ParseException {
+        long id = comment.getId();
+        Log.d("alice_debug", "Item need update with ID : " + id);
+        ContentValues cv = new ContentValues();
+        cv.put(DBAdapter.COLUMN_DATE, comment.getDate());
+        cv.put(DBAdapter.COLUMN_PRICE, comment.getPrice());
+        cv.put(DBAdapter.COLUMN_REASON, comment.getReason());
+        database.update(DBAdapter.TABLE_ACCOUNT, cv, DBAdapter.COLUMN_ID + "=" + id, null);
+        //Cursor cursor = database.query(DBAdapter.TABLE_ACCOUNT, allAccountColumns,
+        //        DBAdapter.COLUMN_ID + "=" + id, null, null, null, null);
+        //cursor.moveToFirst();
+        Log.d("alice", "Done for Create Account");
+        //return cursorToAccountComment(cursor);
+    }
+
+    public float GetLeft(String firstDay){
+        Cursor cursor = database.rawQuery("select sum(price) from Account where record_date>=" + firstDay, null);
+        cursor.moveToFirst();
+        return cursor.getFloat(0);
+    }
+
+
 }
